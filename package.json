@@ -1,0 +1,23 @@
+{
+  "name": "adventofcode",
+  "version": "1.0.0",
+  "description": "My solutions to [advent of code](http://adventofcode.com/) in ES2015.",
+  "main": "day01.js",
+  "devDependencies": {
+    "babel": "^5.8.34",
+    "blueimp-md5": "^1.1.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eviltrout/adventofcode.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/eviltrout/adventofcode/issues"
+  },
+  "homepage": "https://github.com/eviltrout/adventofcode"
+}
