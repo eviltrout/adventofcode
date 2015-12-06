@@ -5,7 +5,8 @@
   "main": "day01.js",
   "devDependencies": {
     "babel": "^5.8.34",
-    "blueimp-md5": "^1.1.1"
+    "blueimp-md5": "^1.1.1",
+    "node-bitarray": "0.0.2"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
