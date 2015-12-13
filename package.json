@@ -5,6 +5,7 @@
   "main": "day01.js",
   "devDependencies": {
     "babel": "^5.8.34",
+    "babel-preset-es2015": "^6.3.13",
     "blueimp-md5": "^1.1.1",
     "node-bitarray": "0.0.2"
   },
