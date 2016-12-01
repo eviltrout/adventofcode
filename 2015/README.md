@@ -1,4 +1,4 @@
-My solutions to [advent of code](http://adventofcode.com/) in ES2015.
+My solutions to [advent of code 2015](http://adventofcode.com/) in ES2015.
 
 Use `babel-node` to run the programs:
 
