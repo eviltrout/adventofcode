@@ -1,6 +1,5 @@
 input = File.read('day03.input')
 
-tris = []
 cols = [[], [], []]
 
 def possible(tri)
@@ -8,11 +7,12 @@ def possible(tri)
 end
 
 count = 0
+v_count = 0
 input.split("\n").each_with_index do |line, i|
   tri = line.split.map(&:to_i)
 
   if i > 0 && i % 3 == 0
-    (0..2).each {|j| tris << cols[j] }
+    (0..2).each {|j| v_count +=1 if possible(cols[j]) }
     cols = [[], [], []]
   end
 
@@ -22,5 +22,5 @@ input.split("\n").each_with_index do |line, i|
 end
 puts count
 
-(0..2).each {|j| tris << cols[j] }
-puts tris.inject(0) {|c, tri| possible(tri) ? c + 1 : c }
+(0..2).each {|j| v_count +=1 if possible(cols[j]) }
+puts v_count
