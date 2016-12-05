@@ -7,6 +7,7 @@ idx = 0
 password = []
 while password.size < 8
   idx += 1
+  hashed = Digest::MD5.hexdigest("#{input}#{idx}")
   password << hashed[5] if hashed[0..4] == "00000"
   print "." if (idx % 100000) == 0
 end
