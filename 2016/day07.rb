@@ -1,22 +1,15 @@
 input = File.read("day07.input")
 
 def abba(str)
-  return false if str.size < 4
-  (1..str.size-2).each do |i|
-    return true if (str[i-1] != str[i]) && (str[i-1] == str[i+2]) && (str[i] == str[i+1])
-  end
-  false
+  str.chars.each_cons(4).any? {|a, b, c, d| a != b && b == c && d == a}
 end
 
 def ssl(grouped)
-  grouped[:even].each do |r|
-    (0..r.size-2).each do |i|
-      if (r[i] != r[i+1]) && (r[i] == r[i+2])
-        return true if grouped[:odd].any? {|h| h.include?("#{r[i+1]}#{r[i]}#{r[i+1]}")}
-      end
+  grouped[:even].any? do |r|
+    r.chars.each_cons(3) do |a, b, c|
+      return true if a != b && a == c && grouped[:odd].any? {|h| h[b + a + b]}
     end
   end
-  return false
 end
 
 count = 0
