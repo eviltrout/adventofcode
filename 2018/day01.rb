@@ -1,10 +1,12 @@
+require 'set'
+
 vals = File.readlines('day01.input').map { |x| x.chomp.to_i }
 
 # Part One
 puts vals.sum
 
 # Part Two
-prev_sums = [0]
+prev_sums = Set.new { 0 }
 
 sum = 0
 loop do
