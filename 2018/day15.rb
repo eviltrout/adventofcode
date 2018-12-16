@@ -1,5 +1,6 @@
 FAR = 99
 SOLID = -1
+READING = [[0, -1], [-1, 0], [1, 0], [0, 1]]
 
 inputs = []
 
@@ -40,25 +41,13 @@ inputs << <<~DATA
 DATA
 
 inputs << <<~DATA
-##############################################
-#............................................#
-#............................................#
-#............................................#
-#............................................#
-#............................................#
-#............................................#
-#............................................#
-#............................................#
-#............................................#
-#............................................#
-#.....................E......................#
-#............................................#
-#............................................#
-#............................................#
-#............................................#
-#............................................#
-#............................................#
-##############################################
+#######
+#.G...#
+#...EG#
+#.#.#G#
+#..G#E#
+#.....#
+#######
 DATA
 
 def hash(x, y)
@@ -68,9 +57,13 @@ end
 class Entity
   attr_reader :type
   attr_accessor :x, :y
+  attr_reader :ap
+  attr_accessor :hp
 
   def initialize(type, x, y)
     @type, @x, @y = type, x, y
+    @ap = 3
+    @hp = 200
   end
 
   def char
@@ -122,26 +115,19 @@ class Distances
     path = path.dup << [x, y]
 
     # Store notable paths
-    if @game.entity_at(x, y - 1, type: @entity.foe_type) ||
-        @game.entity_at(x - 1, y, type: @entity.foe_type) ||
-        @game.entity_at(x + 1, y, type: @entity.foe_type) ||
-        @game.entity_at(x, y + 1, type: @entity.foe_type)
-
-      pos = hash(x, y)
-      if existing_path = @paths[pos]
-        @paths[pos] = path if existing_path.size > path.size
-      else
-        @paths[pos] = path
+    READING.find do |ord|
+      if entity = @game.entity_at(x + ord[0], y + ord[1], type: @entity.foe_type)
+        pos = hash(x, y)
+        if existing_path = @paths[pos]
+          @paths[pos] = path if existing_path.size > path.size
+        else
+          @paths[pos] = path
+        end
       end
     end
 
     @grid[y][x] = steps
-
-    steps += 1
-    trace(steps, x, y - 1, path)
-    trace(steps, x - 1, y, path)
-    trace(steps, x + 1, y, path)
-    trace(steps, x, y + 1, path)
+    READING.each { |ord| trace(steps + 1, x + ord[0], y + ord[1], path) }
   end
 
   def path_to(x, y)
@@ -184,7 +170,7 @@ class Game
   end
 
   def debug
-    sort_entities if @entity_map.nil?
+    sort_entities
 
     @map.each_with_index do |row, y|
       row.each_with_index do |col, x|
@@ -199,35 +185,43 @@ class Game
   end
 
   def tick
-
     @entities.each do |e|
       sort_entities
-      turn(e)
+      next if attack_turn(e)
+      move_turn(e)
+      attack_turn(e)
     end
+
+    @entities.delete_if { |e| e.hp <= 0 }
   end
 
-  def turn(entity)
+  def move_turn(entity)
     distances = Distances.new(self, entity)
     shortest_path = nil
 
-    @entities_by_type[entity.foe_type].each do |foe|
-      if path = distances.path_to(foe.x, foe.y - 1)
-        shortest_path = path if shortest_path.nil? || path.size < shortest_path.size
-      end
-      if path = distances.path_to(foe.x - 1, foe.y)
-        shortest_path = path if shortest_path.nil? || path.size < shortest_path.size
-      end
-      if path = distances.path_to(foe.x + 1, foe.y)
-        shortest_path = path if shortest_path.nil? || path.size < shortest_path.size
-      end
-      if path = distances.path_to(foe.x, foe.y + 1)
-        shortest_path = path if shortest_path.nil? || path.size < shortest_path.size
+    (@entities_by_type[entity.foe_type] || []).each do |foe|
+      READING.each do |ord|
+        if path = distances.path_to(foe.x + ord[0], foe.y + ord[1])
+          shortest_path = path if shortest_path.nil? || path.size < shortest_path.size
+        end
       end
     end
 
     if shortest_path && move_to = shortest_path[1]
       move_entity(entity, move_to[0], move_to[1])
     end
+  end
+
+  def attack_turn(entity)
+    weakest = nil
+    READING.each do |ord|
+      if foe = entity_at(entity.x + ord[0], entity.y + ord[1], type: entity.foe_type)
+        weakest = foe if weakest.nil? || foe.hp < weakest.hp
+      end
+    end
+
+    weakest.hp -= entity.ap if weakest
+    weakest
   end
 
   def move_entity(e, x, y)
@@ -266,11 +260,16 @@ protected
 
 end
 
-game = Game.new(inputs[3])
-game.debug
-game.tick
-game.debug
-game.tick
-game.debug
-game.tick
-game.debug
+game = Game.new(inputs[4])
+turn = 0
+loop do
+  game.tick
+  turn += 1
+  game.debug
+
+  if game.entities.select { |e| e.type == :elf }.size == 0
+    hps = game.entities.select { |e| e.type == :goblin }.map(&:hp).sum
+    puts [turn, hps, turn * hps]
+    exit
+  end
+end
