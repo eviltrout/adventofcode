@@ -1,9 +1,10 @@
-FAR = 99
+FAR = 999
 SOLID = -1
 READING = [[0, -1], [-1, 0], [1, 0], [0, 1]]
 
 inputs = []
 
+# 0
 inputs << <<~DATA
 #######
 #E..G.#
@@ -12,6 +13,7 @@ inputs << <<~DATA
 #######
 DATA
 
+# 1
 inputs << <<~DATA
 #######
 #.E...#
@@ -20,6 +22,7 @@ inputs << <<~DATA
 #######
 DATA
 
+# 2
 inputs << <<~DATA
 #############
 #E..........#
@@ -28,6 +31,7 @@ inputs << <<~DATA
 #############
 DATA
 
+# 3
 inputs << <<~DATA
 #########
 #G..G..G#
@@ -40,6 +44,7 @@ inputs << <<~DATA
 #########
 DATA
 
+# 4
 inputs << <<~DATA
 #######
 #.G...#
@@ -49,6 +54,81 @@ inputs << <<~DATA
 #.....#
 #######
 DATA
+
+# 47 * 590 = 27730
+
+# 5
+inputs << <<~DATA
+#######
+#G..#E#
+#E#E.E#
+#G.##.#
+#...#E#
+#...E.#
+#######
+DATA
+
+# 6
+inputs << <<~DATA
+#######
+#E..EG#
+#.#G.E#
+#E.##E#
+#G..#.#
+#..E#.#
+#######
+DATA
+
+# Combat ends after 46 full rounds
+# Elves win with 859 total hit points left
+# Outcome: 46 * 859 = 39514
+
+# 7
+inputs << <<~DATA
+#######
+#E.G#.#
+#.#G..#
+#G.#.G#
+#G..#.#
+#...E.#
+#######
+DATA
+
+# Combat ends after 35 full rounds
+# Goblins win with 793 total hit points left
+# Outcome: 35 * 793 = 27755
+
+# 8
+inputs << <<~DATA
+#######
+#.E...#
+#.#..G#
+#.###.#
+#E#G#G#
+#...#G#
+#######
+DATA
+
+# Combat ends after 54 full rounds
+# Goblins win with 536 total hit points left
+# Outcome: 54 * 536 = 28944
+
+# 9
+inputs << <<~DATA
+#########
+#G......#
+#.E.#...#
+#..##..G#
+#...##..#
+#...#...#
+#.G...G.#
+#.....G.#
+#########
+DATA
+
+# Combat ends after 20 full rounds
+# Goblins win with 937 total hit points left
+# Outcome: 20 * 937 = 18740
 
 def hash(x, y)
   (y * 10000) + x
@@ -97,7 +177,7 @@ class Distances
         case col
         when -1
           print "##"
-        when 99
+        when FAR
           print ".."
         else
           print "%0.2d" % col
@@ -110,8 +190,7 @@ class Distances
 
   def trace(steps, x, y, path)
     val = @grid[y][x]
-    return if val < steps
-
+    return if val <= steps
     path = path.dup << [x, y]
 
     # Store notable paths
@@ -137,13 +216,14 @@ end
 
 class Game
 
-  attr_reader :map, :entities
+  attr_reader :map, :entities, :turn
 
   def initialize(input)
     @map = []
     @entities = []
     @entity_map = nil
     @entities_by_type = nil
+    @turn = 0
 
     input.each_line.with_index do |l, y|
       row = []
@@ -182,17 +262,24 @@ class Game
       end
       print "\n"
     end
+
+    p @entities.map { |e| "#{e.type.upcase[0]} -> #{e.hp}" }
+    # puts "elves: #{@entities.select { |e| e.type == :elf }.map { |e| e.hp }}"
+    # puts "goblins: #{@entities.select { |e| e.type == :goblin }.map { |e| e.hp }}"
   end
 
   def tick
+    sort_entities
     @entities.each do |e|
-      sort_entities
+      foes_left = @entities_by_type[e.foe_type].select{ |f| f.hp > 0 }.size
+      return true if foes_left == 0
+      next if e.hp <= 0
       next if attack_turn(e)
+
       move_turn(e)
       attack_turn(e)
     end
-
-    @entities.delete_if { |e| e.hp <= 0 }
+    @turn += 1
   end
 
   def move_turn(entity)
@@ -200,9 +287,11 @@ class Game
     shortest_path = nil
 
     (@entities_by_type[entity.foe_type] || []).each do |foe|
-      READING.each do |ord|
-        if path = distances.path_to(foe.x + ord[0], foe.y + ord[1])
-          shortest_path = path if shortest_path.nil? || path.size < shortest_path.size
+      if foe.hp > 0
+        READING.each do |ord|
+          if path = distances.path_to(foe.x + ord[0], foe.y + ord[1])
+            shortest_path = path if shortest_path.nil? || path.size < shortest_path.size
+          end
         end
       end
     end
@@ -221,7 +310,7 @@ class Game
     end
 
     weakest.hp -= entity.ap if weakest
-    weakest
+    !!weakest
   end
 
   def move_entity(e, x, y)
@@ -232,13 +321,36 @@ class Game
 
   def entity_at(x, y, opts = {})
     result = @entity_map[hash(x, y)]
+
     return nil if result.nil?
+    return if result.hp <= 0
 
     if opts[:type] && result.type != opts[:type]
       return nil
     end
 
     result
+  end
+
+  def check_done
+    entities.delete_if { |e| e.hp <= 0 }
+
+    elf_count = 0
+    goblin_count = 0
+    hps = 0
+
+    entities.each do |e|
+      elf_count += 1 if e.type == :elf
+      goblin_count += 1 if e.type == :goblin
+      hps += e.hp
+    end
+
+    if elf_count == 0 || goblin_count == 0
+      puts "#{elf_count == 0 ? "Goblins" : "Elves" } win!"
+      debug
+      p [turn, hps, turn * hps]
+      return true
+    end
   end
 
 protected
@@ -260,16 +372,13 @@ protected
 
 end
 
-game = Game.new(inputs[4])
-turn = 0
-loop do
-  game.tick
-  turn += 1
-  game.debug
+# game = Game.new(inputs[9])
+game = Game.new(File.read("day15.input"))
 
-  if game.entities.select { |e| e.type == :elf }.size == 0
-    hps = game.entities.select { |e| e.type == :goblin }.map(&:hp).sum
-    puts [turn, hps, turn * hps]
-    exit
-  end
+done = false
+while !done
+  puts game.turn
+  game.debug
+  game.tick
+  done = game.check_done
 end
