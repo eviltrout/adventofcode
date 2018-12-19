@@ -130,6 +130,27 @@ DATA
 # Goblins win with 937 total hit points left
 # Outcome: 20 * 937 = 18740
 
+# 10
+inputs << <<~DATA
+######
+#.G..#
+##..##
+#...E#
+#E...#
+######
+DATA
+
+# 11
+inputs << <<~DATA
+########
+#.E....#
+#......#
+#....G.#
+#...G..#
+#G.....#
+########
+DATA
+
 def hash(x, y)
   (y * 10000) + x
 end
@@ -140,9 +161,9 @@ class Entity
   attr_reader :ap
   attr_accessor :hp
 
-  def initialize(type, x, y)
+  def initialize(type, x, y, ap)
     @type, @x, @y = type, x, y
-    @ap = 3
+    @ap = ap
     @hp = 200
   end
 
@@ -164,7 +185,7 @@ class Distances
     @grid = @game.map.map do |r|
       r.map { |c| c == '.' ? FAR : SOLID }
     end
-    game.entities.each { |a| @grid[a.y][a.x] = SOLID unless entity == a }
+    game.entities.each { |a| @grid[a.y][a.x] = SOLID unless entity == a || entity.hp <= 0 }
 
     @paths = {}
 
@@ -209,6 +230,10 @@ class Distances
     READING.each { |ord| trace(steps + 1, x + ord[0], y + ord[1], path) }
   end
 
+  def distance_to(x, y)
+    @grid[y][x]
+  end
+
   def path_to(x, y)
     @paths[hash(x, y)]
   end
@@ -218,7 +243,7 @@ class Game
 
   attr_reader :map, :entities, :turn
 
-  def initialize(input)
+  def initialize(input, elf_power)
     @map = []
     @entities = []
     @entity_map = nil
@@ -231,9 +256,9 @@ class Game
         tile = '.'
         case c
         when 'E'
-          add_entity(:elf, x, y)
+          add_entity(:elf, x, y, elf_power)
         when 'G'
-          add_entity(:goblin, x, y)
+          add_entity(:goblin, x, y, 3)
         when '#'
           tile = '#'
         end
@@ -245,8 +270,8 @@ class Game
     @height = @map.size
   end
 
-  def add_entity(type, x, y)
-    @entities << Entity.new(type, x, y)
+  def add_entity(type, x, y, ap)
+    @entities << Entity.new(type, x, y, ap)
   end
 
   def debug
@@ -271,7 +296,7 @@ class Game
   def tick
     sort_entities
     @entities.each do |e|
-      foes_left = @entities_by_type[e.foe_type].select{ |f| f.hp > 0 }.size
+      foes_left = @entities_by_type[e.foe_type].select { |f| f.hp > 0 }.size
       return true if foes_left == 0
       next if e.hp <= 0
       next if attack_turn(e)
@@ -284,20 +309,34 @@ class Game
 
   def move_turn(entity)
     distances = Distances.new(self, entity)
-    shortest_path = nil
 
-    (@entities_by_type[entity.foe_type] || []).each do |foe|
-      if foe.hp > 0
+    min_dist = 999
+    targets = []
+    @entities.each do |foe|
+      if foe.type == entity.foe_type && foe.hp > 0
         READING.each do |ord|
-          if path = distances.path_to(foe.x + ord[0], foe.y + ord[1])
-            shortest_path = path if shortest_path.nil? || path.size < shortest_path.size
+          t_x = foe.x + ord[0]
+          t_y = foe.y + ord[1]
+          dist = distances.distance_to(t_x, t_y)
+          if dist != -1
+            if dist < min_dist
+              targets = []
+              min_dist = dist
+            end
+            targets << [t_x, t_y] if dist <= min_dist
           end
         end
       end
     end
+    targets.sort_by! { |a| [a[1], a[0]] }
 
-    if shortest_path && move_to = shortest_path[1]
-      move_entity(entity, move_to[0], move_to[1])
+    unless targets.empty?
+      target = targets[0]
+      if path = distances.path_to(target[0], target[1])
+        if move_to = path[1]
+          move_entity(entity, move_to[0], move_to[1])
+        end
+      end
     end
   end
 
@@ -346,10 +385,10 @@ class Game
     end
 
     if elf_count == 0 || goblin_count == 0
-      puts "#{elf_count == 0 ? "Goblins" : "Elves" } win!"
+      winner = elf_count == 0 ? :goblins : :elves
       debug
-      p [turn, hps, turn * hps]
-      return true
+      p [winner, turn, hps, turn * hps]
+      return winner
     end
   end
 
@@ -372,13 +411,16 @@ protected
 
 end
 
-# game = Game.new(inputs[9])
-game = Game.new(File.read("day15.input"))
-
-done = false
-while !done
-  puts game.turn
-  game.debug
-  game.tick
-  done = game.check_done
+winner = nil
+power = 3
+while winner != :elves
+  game = Game.new(File.read("day15.input"), power)
+  winner = nil
+  while !winner
+    puts game.turn
+    game.tick
+    winner = game.check_done
+  end
+  power += 1
 end
+
