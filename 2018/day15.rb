@@ -241,7 +241,7 @@ end
 
 class Game
 
-  attr_reader :map, :entities, :turn
+  attr_reader :map, :entities, :turn, :elf_power
 
   def initialize(input, elf_power)
     @map = []
@@ -249,6 +249,7 @@ class Game
     @entity_map = nil
     @entities_by_type = nil
     @turn = 0
+    @elf_power = elf_power
 
     input.each_line.with_index do |l, y|
       row = []
@@ -256,7 +257,7 @@ class Game
         tile = '.'
         case c
         when 'E'
-          add_entity(:elf, x, y, elf_power)
+          add_entity(:elf, x, y, @elf_power)
         when 'G'
           add_entity(:goblin, x, y, 3)
         when '#'
@@ -386,8 +387,8 @@ class Game
 
     if elf_count == 0 || goblin_count == 0
       winner = elf_count == 0 ? :goblins : :elves
-      debug
-      p [winner, turn, hps, turn * hps]
+      p [winner, elf_count, goblin_count, @elf_power]
+      p [turn, hps, turn * hps]
       return winner
     end
   end
@@ -412,12 +413,12 @@ protected
 end
 
 winner = nil
-power = 3
-while winner != :elves
+power = 5
+loop do
   game = Game.new(File.read("day15.input"), power)
   winner = nil
   while !winner
-    puts game.turn
+    print "#{game.turn} -> "
     game.tick
     winner = game.check_done
   end
