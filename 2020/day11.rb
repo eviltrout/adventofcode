@@ -30,29 +30,6 @@ class Grid
 		puts "---"
 	end
 
-	def calc(x, y)
-		val = @rows[y][x]
-		return ['.', false] if val == '.'
-
-		if val == 'L' && NEIGHBORS.none? { |n|
-			x0, y0 = x + n[0], y + n[1]
-			(x0 >= 0 && y0 >= 0 && x0 < @size_x && y0 < @size_y && @rows[y0][x0] == '#')
-		}
-			return ['#', true]
-		end
-
-		if val == '#'
-			n_count = 0
-			NEIGHBORS.each { |n|
-				x0, y0 = x + n[0], y + n[1]
-				n_count +=1 if (x0 >= 0 && y0 >= 0 && x0 < @size_x && y0 < @size_y && @rows[y0][x0] == '#')
-				break if n_count == 4
-			}
-			return ['L', true] if n_count == 4
-		end
-		return [val, false]
-	end
-
 	def tick
 		result = []
 		changed = false
@@ -75,6 +52,31 @@ class Grid
 		changed, seat_count = tick
 		return !changed ? seat_count : find_statis
 	end
+
+  def flip_off?(x, y)
+		NEIGHBORS.none? { |n|
+			x0, y0 = x + n[0], y + n[1]
+			(x0 >= 0 && y0 >= 0 && x0 < @size_x && y0 < @size_y && @rows[y0][x0] == '#')
+		}
+  end
+
+  def flip_on?(x, y)
+    n_count = 0
+    NEIGHBORS.each { |n|
+      x0, y0 = x + n[0], y + n[1]
+      n_count +=1 if (x0 >= 0 && y0 >= 0 && x0 < @size_x && y0 < @size_y && @rows[y0][x0] == '#')
+      return true if n_count == 4
+    }
+    false
+  end
+
+	def calc(x, y)
+		val = @rows[y][x]
+		return ['.', false] if val == '.'
+    return ['#', true] if val == 'L' && flip_off?(x, y)
+    return ['L', true] if val == '#' && flip_on?(x, y)
+		return [val, false]
+	end
 end
 
 class ComplexGrid < Grid
@@ -89,27 +91,19 @@ class ComplexGrid < Grid
 		end
 	end
 
-	def calc(x, y)
-		val = @rows[y][x]
-		return ['.', false] if val == '.'
+  def flip_off?(x, y)
+    NEIGHBORS.none? { |n| raycast(x, y, n[0], n[1]) }
+  end
 
-		if val == 'L' && NEIGHBORS.none? { |n| raycast(x, y, n[0], n[1]) }
-			return ['#', true]
-		end
-
-		if val == '#'
-			n_count = 0
-			NEIGHBORS.each { |n|
-				n_count +=1 if raycast(x, y, n[0], n[1])
-				break if n_count == 5
-			}
-			return ['L', true] if n_count == 5
-		end
-		return [val, false]
-	end
+  def flip_on?(x, y)
+    n_count = 0
+    NEIGHBORS.each { |n|
+      n_count +=1 if raycast(x, y, n[0], n[1])
+      return true if n_count == 5
+    }
+    false
+  end
 end
 
-g = Grid.new(data)
-p g.find_statis
-g = ComplexGrid.new(data)
-p g.find_statis
+p Grid.new(data).find_statis
+p ComplexGrid.new(data).find_statis
