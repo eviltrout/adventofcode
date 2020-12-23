@@ -36,9 +36,7 @@ def play_game(c0, c1)
   seen = Set.new
 
   while !c0.empty? && !c1.empty?
-    id = "#{c0.join(?-)}:#{c1.join(?-)}"
-    return 0 if seen.include?(id)
-    seen << id
+    return 0 unless seen.add?((c0 + [0] + c1).pack('c*'))
 
     p0, p1 = c0.shift, c1.shift
     winner = if c0.size >= p0 && c1.size >= p1
