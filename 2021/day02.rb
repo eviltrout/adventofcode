@@ -6,9 +6,9 @@ vals.split("\n").each do |i|
   n = n.to_i
   if cmd == "forward"
     h += n
-		d += (a * n)
+    d += (a * n)
   else
-		a += (cmd == "up") ? -n : n
+    a += (cmd == "up") ? -n : n
   end
 end
 
