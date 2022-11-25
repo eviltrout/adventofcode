@@ -19,19 +19,12 @@ test_data = cleandoc("""
 base = os.path.splitext(os.path.basename(__file__))[0]
 test_data = open(base + ".input").read()
 
-def find_div(l):
-    for (x, y) in list(combinations(l, 2)):
-        if x % y == 0:
-            return int(x / y)
-        if y % x == 0:
-            return int(y / x)
-
 total = 0
 total_div = 0
 for row in test_data.splitlines():
     ints = list(map(int, row.split()))
     total += (max(ints) - min(ints))
-    total_div += find_div(ints)
+    total_div += sum((y // x) for x, y in list(combinations(sorted(ints), 2)) if y % x == 0)
 
 print(total)
 print(total_div)
