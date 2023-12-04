@@ -9,14 +9,15 @@ if not session:
 	exit()
 
 today = date.today()
+day_num = today.day
 
 year = str(today.year)
-day = "%02d" % today.day
+day = "%02d" % day_num
 
 if not os.path.exists(year):
 	os.makedirs(path)
 
-remote_input_path = "https://adventofcode.com/" + year + "/day/" + str(today.day) + "/input"
+remote_input_path = "https://adventofcode.com/" + year + "/day/" + str(day_num) + "/input"
 f = open(year + "/day" + day + ".input", "w")
 response = requests.get(remote_input_path, cookies={ "session" : session })
 f.write(response.text)
