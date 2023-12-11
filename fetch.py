@@ -1,4 +1,5 @@
 from datetime import date
+import sys
 import os
 import requests
 import shutil
@@ -10,6 +11,9 @@ if not session:
 
 today = date.today()
 day_num = today.day
+
+if len(sys.argv) == 2:
+    day_num = int(sys.argv[1])
 
 year = str(today.year)
 day = "%02d" % day_num
